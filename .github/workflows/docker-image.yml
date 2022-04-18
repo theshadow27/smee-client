@@ -13,12 +13,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env: 
+      REPO: theshadow27/smee-client
     steps:
     - uses: actions/checkout@v2
     - name: CI Release
       uses: codfish/semantic-release-action@v1
       id: semantic
-      if: github.event_name != 'pull_request' &&  github.ref == 'refs/heads/master' && github.repository == 'theshadow27/smee-client'
+      if: github.event_name != 'pull_request' &&  github.ref == 'refs/heads/master' && github.repository == env.REPO
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -32,4 +34,4 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         push: ${{steps.semantic.outputs.new-release-published == 'true'}}
-        tags: theshadow27/smee-client:latest,theshadow27/smee-client:${{ steps.semantic.outputs.release-version }}
+        tags: ${{REPO}}:latest,${{REPO}}:${{ steps.semantic.outputs.release-version || CI_COMMIT_SLUG }}
