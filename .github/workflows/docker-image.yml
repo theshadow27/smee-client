@@ -34,4 +34,4 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         push: ${{steps.semantic.outputs.new-release-published == 'true'}}
-        tags: $REPO:latest,$REPO:${{ steps.semantic.outputs.release-version || env.CI_COMMIT_SLUG }}
+        tags: ${{env.REPO}}:latest,${{env.REPO}}:${{ steps.semantic.outputs.release-version || env.CI_COMMIT_SLUG }}
