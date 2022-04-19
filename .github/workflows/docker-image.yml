@@ -20,9 +20,6 @@ jobs:
     - name: CI Release
       uses: docker://codfish/semantic-release-action@v1
       id: semantic
-      defaults:
-        outputs:
-          release-version: latest
       if: github.event_name != 'pull_request' &&  github.ref == 'refs/heads/master' && github.repository == env.REPO
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
