@@ -46,8 +46,14 @@ services:
       - ./etc/smee.json:/usr/src/smee.io/etc/smee.json:ro
 ```
 
+### CI/CD
 
+Added via (Github Worflows)[https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions]:
 
+1. (semantic-release)[https://github.com/semantic-release/semantic-release] action for autotagging
+2. Docker (build-push)[https://github.com/docker/build-push-action] action handles all build and test
+
+It should only trigger on the master branch. 
 
 # Original README for the node-js `smee-client` Follows
 
