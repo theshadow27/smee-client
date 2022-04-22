@@ -24,8 +24,8 @@ if (program.target) {
 }
 
 async function setupFromFile (file) {
-  let data = await readfile(file)
-  let config = JSON.parse(data)
+  const data = await readfile(file)
+  const config = JSON.parse(data)
   let forward = config.forward
   if (!Array.isArray(forward)) {
     if (!forward.source || !forward.target) {
@@ -34,13 +34,13 @@ async function setupFromFile (file) {
     }
     forward = [forward]
   }
-  let clients = []
-  for (var each of forward) {
+  const clients = []
+  for (const each of forward) {
     if (!each.source || !each.target) {
       console.log(config)
       throw new Error('config.forward[] each object must have source and target')
     }
-    let { source, target } = each
+    const { source, target } = each
     console.log(`Configured forwarding from ${source} --> ${target}`)
     clients.push(new Client({ source, target }))
   }
@@ -48,16 +48,18 @@ async function setupFromFile (file) {
 }
 
 async function setup () {
-  let file = program.file
+  const file = program.file
 
   if (file) {
-    let clients = await setupFromFile(file)
+    const clients = await setupFromFile(file)
     clients.forEach(x => x.start())
   } else {
     let source = program.url
 
     if (!source) {
       source = await Client.createChannel()
+      console.warn('No source channel specified: creating one dynamically (this is probably not what you want)')
+      console.log('[new-channel] ' + source)
     }
 
     const client = new Client({ source, target })

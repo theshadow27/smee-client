@@ -55,6 +55,18 @@ Added via (Github Worflows)[https://docs.github.com/en/actions/using-workflows/w
 
 It should only trigger on the master branch. 
 
+
+## Build and Test
+
+Locally, you can build and test with `docker build . -t 'smee-client:latest' `. 
+
+It is a multistage docker build including tests. 
+
+
+
+
+
+
 # Original README for the node-js `smee-client` Follows
 
 <h2 align="center">smee-client</h2>
