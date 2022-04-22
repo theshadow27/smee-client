@@ -1,8 +1,8 @@
-import validator = require('validator');
+import url = require('url');  
 import EventSource = require('eventsource');
-import superagent = require('superagent');
-import url = require('url');
-import querystring = require('querystring');
+import Axios = require('axios');
+
+const axios = Axios.default;
 
 type Severity = 'info' | 'error'
 
@@ -11,6 +11,13 @@ function logdate(){
     .replace(/T/, ' ')
     .replace(/\..+/, '')
     + '] ';
+}
+
+function requireValidUrl(name: string, str : string){
+  const url = new URL(str); // throws TypeError if invalid
+  if (!url.protocol || ['http','https'].indexOf(url.protocol) < 0) 
+    throw new TypeError(`The provided ${name} URL is invalid: ${str}`)
+  
 }
 
 interface Options {
@@ -25,8 +32,7 @@ class Client {
   source: string;
   target: string;
   logger: Pick<Console, Severity>;
-  events!: EventSource;
-
+  events!: EventSource; // SSE client 
   idle_reconnect: number; // millis - how long if there are no events to restart the connection. If negative, never restart
   last_event: number;  // the timestamp of the last event in millis
 
@@ -37,50 +43,73 @@ class Client {
     this.idle_reconnect = idle_reconnect;
     this.last_event = 0;
 
+    requireValidUrl('source', this.source);
+    requireValidUrl('target', this.target);
+    
+    // don't healthcheck if the URL is invalid!
     setInterval(this.oninterval.bind(this), health_interval);
-
-    if (!validator.isURL(this.source)) {
-      throw new Error('The provided URL is invalid.')
-    }
+    
   }
 
-  static async createChannel () {
-    return superagent.head('https://smee.io/new').redirects(0).catch((err) => {
-      return err.response.headers.location
-    })
+  static async createChannel (provider = 'https://smee.io') {
+    let url = new URL(provider);
+    let target = `${url.protocol || 'https:'}//${url.host}/new`;
+    console.log('createChannel( ' + target + ' )');
+    return await axios.head(target, {
+      maxRedirects: 0,
+      validateStatus: (st)=>[301, 302].indexOf(st) >= 0,
+    }).then((resp) => {
+      return resp.headers.location;
+    });
   }
 
-  onmessage (msg: any) {
+  onmessage (msg: MessageEvent) {
+    
     const data = JSON.parse(msg.data)
 
-    const target = url.parse(this.target, true)
-    const mergedQuery = Object.assign(target.query, data.query)
-    target.search = querystring.stringify(mergedQuery)
+    const target = new URL(this.target);
 
-    delete data.query
+    if(typeof data.query === 'object'){
+      Object.entries(data.query)
+          .forEach(([k,v])=>target.searchParams.set(k, `${v}`));
+      delete data.query
+    }
 
-    const req = superagent.post(url.format(target)).send(data.body)
-
-    const bodyLength = JSON.stringify(data.body).length
-
+    const body = !data.body ? "" 
+                : typeof data.body === 'string' ? data.body 
+                : JSON.stringify(data.body);
+    const bodyLength = Buffer.byteLength(body, 'utf8');
     delete data.body
 
-    Object.keys(data).forEach(key => {
-      if(['host'].indexOf(key.toLowerCase()) < 0) // do not re-set host header!!
-        req.set(key, data[key])
-    })
+    const headers : any = {};
+    Object.entries(data)
+      .filter(([key]) => ['host'].indexOf(key.toLowerCase()) < 0 )// do not re-set host header!!
+      .forEach( ([key, val]) => headers[key] = val )
 
-    req.set('content-length', `${bodyLength}`)
-
-    req.end((err, res) => {
-      this.last_event = Date.now();
-
-      if (err) {
-        this.logger.error(logdate(), `${this.source} => ${req.method} ${req.url} - `, err)
+    headers['content-length']= `${bodyLength}`;
+    
+    axios.post(target.toString(), body, {
+      headers
+    }).then(ok => {
+      this.logger.info(logdate(), `${this.source} => ${ok.request.method} ${ok.request.url} - ${ok.status}`)
+    }, error => {
+      // see https://github.com/axios/axios#handling-errors
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        this.logger.error(logdate(), `${this.source} => ${error.request.method} ${error.request.url} - ${error.response.status}: `, error);
+      } else if (error.request) {
+        // The request was made but no response was received
+        // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
+        // http.ClientRequest in node.js
+        this.logger.error(logdate(), `${this.source} => ${error.request.method} ${error.request.url} - no response: `, error);
       } else {
-        this.logger.info(logdate(), `${this.source} => ${req.method} ${req.url} - ${res.status}`)
+        // Something happened in setting up the request that triggered an Error
+        this.logger.error(`${this.source} => ${error.message}`);
       }
-    })
+    }).finally(()=>{
+      this.last_event = Date.now()
+    });
   }
 
   onopen () {
