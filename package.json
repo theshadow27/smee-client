@@ -31,8 +31,6 @@
     "@types/eventsource": "^1.1.8",
     "@types/jest": "^27.4.1",
     "@types/node": "^17.0.25",
-    "@types/superagent": "^4.1.15",
-    "@types/validator": "^13.7.2",
     "babel-core": "^7.0.0-bridge.0",
     "babel-jest": "^27.5.1",
     "connect-sse": "^1.2.0",
