@@ -4,6 +4,10 @@ This fork of `smee-client` includes stability fixes, dependency updates, and a g
 In contrast to other containerized forks, this one uses file-based configuration to enable more 
 than one smee fowarders per client container. 
 
+As of 1.3, the client codebase has diverged from `protobot/smee-client` because several very outdated
+dependencies had to be completely replaced. This effectivly required a refactor, where `superagent`
+was replaced with `axios`. 
+
 ## Using the container
 
 This repo publishes images to DockerHub with the tag [theshadow27/smee-client](https://hub.docker.com/repository/docker/theshadow27/smee-client/general)
